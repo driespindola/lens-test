@@ -1,10 +1,9 @@
-import { FC, useState, ReactNode, useCallback, useEffect } from "react";
-import { gql } from "@apollo/client/core";
+import { FC, useState, useEffect } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import {
   AuthenticateDocument,
   GetChallengeDocument,
-  GetUserProfilesDocument,
+  ProfilesDocument,
 } from "@/types/lens";
 import { CHAIN_ID } from "src/constants";
 import { useAppPersistStore, useAppStore } from "src/store/app";
@@ -19,10 +18,10 @@ import type { Connector } from "wagmi";
 import toast from "react-hot-toast";
 
 const LoginWallet: FC = () => {
-  const currentProfile = useAppStore((state) => state.currentProfile);
   const setProfiles = useAppStore((state) => state.setProfiles);
   const setCurrentProfile = useAppStore((state) => state.setCurrentProfile);
   const setProfileId = useAppPersistStore((state) => state.setProfileId);
+  const [mounted, setMounted] = useState(false);
 
   const { chain } = useNetwork();
   const { switchNetwork } = useSwitchNetwork();
@@ -37,7 +36,11 @@ const LoginWallet: FC = () => {
   const [authenticate, { error: errorAuthenticate, loading: authLoading }] =
     useMutation(AuthenticateDocument);
   const [getUserProfiles, { error: errorProfiles, loading: profilesLoading }] =
-    useLazyQuery(GetUserProfilesDocument);
+    useLazyQuery(ProfilesDocument);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const onConnect = async (connector: Connector) => {
     try {
@@ -79,7 +82,7 @@ const LoginWallet: FC = () => {
 
       // Get authed profiles
       const { data: profilesData } = await getUserProfiles({
-        variables: { address },
+        variables: { request: { ownedBy: [address] } },
       });
 
       if (profilesData?.profiles?.items?.length === 0) {
@@ -95,11 +98,14 @@ const LoginWallet: FC = () => {
   };
 
   return activeConnector?.id ? (
-    <div>
+    <div className="flex flex-1">
       {chain?.id === CHAIN_ID ? (
-        <button onClick={() => handleLogin()}>Login In with Lens</button>
+        <button className="flex-1" onClick={() => handleLogin()}>
+          {mounted ? "Log In With Lens" : ""}
+        </button>
       ) : (
         <button
+          className="flex-1"
           onClick={() => {
             if (switchNetwork) {
               switchNetwork(CHAIN_ID);
@@ -113,9 +119,11 @@ const LoginWallet: FC = () => {
       )}
     </div>
   ) : (
-    <button onClick={() => onConnect(connectors[0])}>
-      Connect your wallet
-    </button>
+    <div className="flex flex-1">
+      <button className="flex-1" onClick={() => onConnect(connectors[0])}>
+        {mounted ? "Connect Your Wallet" : ""}
+      </button>
+    </div>
   );
 };
 

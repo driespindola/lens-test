@@ -1,0 +1,17 @@
+query ExplorePublications(
+  $request: ExplorePublicationRequest!
+  $reactionRequest: ReactionFieldResolverRequest
+  ) {
+  explorePublications(request: $request) {
+    items {
+      ... on Post {
+        ...PostFields
+      }
+    }
+    pageInfo {
+      prev
+      next
+      totalCount
+    }
+  }
+}
